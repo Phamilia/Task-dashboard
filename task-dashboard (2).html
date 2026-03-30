@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #ffffff;
+    --bg2:      #f7f7f5;
+    --bg3:      #efefed;
+    --border:   rgba(55,53,47,0.14);
+    --border2:  rgba(55,53,47,0.26);
+    --text:     #37352f;
+    --text2:    #787672;
+    --text3:    #a8a6a2;
+    --green:    #1d9e75;
+    --green-bg: #e1f5ee;
+    --green-tx: #0f6e56;
+    --amber-bg: #faeeda;
+    --amber-tx: #854f0b;
+    --red-bg:   #fcebeb;
+    --red-tx:   #a32d2d;
+    --gray-bg:  #f1efe8;
+    --gray-tx:  #5f5e5a;
+    --r:        8px;
+    --rl:       12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:       #1f1f1f;
+      --bg2:      #2b2b2b;
+      --bg3:      #363636;
+      --border:   rgba(255,255,255,0.10);
+      --border2:  rgba(255,255,255,0.20);
+      --text:     #e6e4e0;
+      --text2:    #9a9894;
+      --text3:    #6a6866;
+      --green-bg: #0c3326;
+      --green-tx: #4ecb9a;
+      --amber-bg: #3b2700;
+      --amber-tx: #f5c060;
+      --red-bg:   #3b1010;
+      --red-tx:   #f09090;
+      --gray-bg:  #2c2c2a;
+      --gray-tx:  #b0aea8;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 36px 24px 60px;
+    max-width: 660px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  .hdr { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
+  .hdr-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  .hdr-date  { font-size: 13px; color: var(--text2); }
+
+  /* ---------- Stats ---------- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 30px; }
+  .stat  { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
+  .stat-n { font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat-l { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* ---------- Section label ---------- */
+  .slabel { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 10px; }
+
+  /* ---------- Cards ---------- */
+  .cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); overflow: hidden; transition: box-shadow 0.15s; }
+
+  .card-body { padding: 15px 18px 13px; }
+
+  .card-top  { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+  .card-name { font-size: 15px; font-weight: 500; line-height: 1.35; flex: 1; }
+  .card-name.done { text-decoration: line-through; color: var(--text3); }
+
+  /* badge */
+  .badge     { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+  .b-ok      { background: var(--green-bg); color: var(--green-tx); }
+  .b-warn    { background: var(--amber-bg); color: var(--amber-tx); }
+  .b-urgent  { background: var(--red-bg);   color: var(--red-tx); }
+  .b-done    { background: var(--gray-bg);  color: var(--gray-tx); }
+
+  /* progress row */
+  .prow { display: flex; align-items: center; gap: 10px; }
+  .pbar { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .pfill { height: 100%; border-radius: 3px; transition: width 0.35s ease; }
+  .ptxt  { font-size: 12px; color: var(--text2); white-space: nowrap; min-width: 36px; text-align: right; }
+
+  /* card footer */
+  .card-foot { display: flex; align-items: center; justify-content: space-between; padding: 7px 18px; border-top: 0.5px solid var(--border); background: var(--bg2); }
+  .card-due  { font-size: 12px; color: var(--text2); }
+  .tog-btn   { font-size: 12px; color: var(--text2); cursor: pointer; padding: 4px 10px; border: 0.5px solid var(--border2); border-radius: 6px; background: var(--bg); line-height: 1.4; }
+  .tog-btn:hover { background: var(--bg3); }
+
+  /* subtasks list */
+  .subs-list { border-top: 0.5px solid var(--border); }
+  .sub-row   { display: flex; align-items: center; gap: 10px; padding: 9px 18px 9px 34px; cursor: pointer; user-select: none; }
+  .sub-row:hover { background: var(--bg2); }
+
+  .chk { width: 16px; height: 16px; flex-shrink: 0; border-radius: 4px; border: 1.5px solid var(--border2); background: transparent; display: flex; align-items: center; justify-content: center; transition: background 0.12s, border-color 0.12s; }
+  .chk.on { background: var(--green); border-color: var(--green); }
+
+  .sub-lbl      { font-size: 13px; color: var(--text2); line-height: 1.4; }
+  .sub-lbl.done { text-decoration: line-through; color: var(--text3); }
+
+  /* ---------- Add button ---------- */
+  .add-btn { display: block; width: 100%; padding: 10px 14px; background: transparent; border: 0.5px dashed var(--border2); border-radius: var(--r); color: var(--text2); font-size: 13px; font-family: inherit; cursor: pointer; text-align: left; margin-bottom: 40px; }
+  .add-btn:hover { background: var(--bg2); }
+
+  /* ---------- Modal ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.38); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .overlay.open { display: flex; }
+
+  .modal { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--rl); padding: 24px; width: 100%; max-width: 400px; }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+
+  .field       { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .field input,
+  .field textarea {
+    display: block; width: 100%; padding: 8px 10px;
+    font-size: 14px; font-family: inherit;
+    background: var(--bg2); color: var(--text);
+    border: 0.5px solid var(--border2); border-radius: var(--r);
+    outline: none;
+  }
+  .field input:focus,
+  .field textarea:focus { border-color: var(--green); }
+  .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .btn-sec { padding: 8px 16px; background: transparent; border: 0.5px solid var(--border2); border-radius: var(--r); font-size: 13px; font-family: inherit; color: var(--text2); cursor: pointer; }
+  .btn-sec:hover { background: var(--bg2); }
+  .btn-pri { padding: 8px 18px; background: var(--green); border: none; border-radius: var(--r); font-size: 13px; font-weight: 600; font-family: inherit; color: #fff; cursor: pointer; }
+  .btn-pri:hover { background: #178a64; }
+  .btn-pri:disabled { opacity: 0.55; cursor: default; }
+
+  /* ---------- Empty state ---------- */
+  .empty { text-align: center; padding: 40px 0 20px; color: var(--text3); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">My Tasks</div>
+  <div class="hdr-date" id="hdr-date"></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total tasks</div></div>
+  <div class="stat"><div class="stat-n" id="st-done">0</div><div class="stat-l">Completed</div></div>
+  <div class="stat"><div class="stat-n" id="st-urgent">0</div><div class="stat-l">Due soon</div></div>
+</div>
+
+<div class="slabel">Active tasks</div>
+<div class="cards" id="cards"></div>
+<button class="add-btn" id="open-modal-btn">+ Add task</button>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-title">Add new task</div>
+    <div class="field">
+      <label for="inp-name">Task name</label>
+      <input id="inp-name" type="text" placeholder="e.g. Final Year Report" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="inp-due">Due date</label>
+      <input id="inp-due" type="date">
+    </div>
+    <div class="field">
+      <label for="inp-subs">Subtasks — one per line (optional)</label>
+      <textarea id="inp-subs" placeholder="Email supervisor&#10;Write intro&#10;Edit methods"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" id="cancel-btn">Cancel</button>
+      <button class="btn-pri" id="save-btn">Add task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Storage ─────────────────────────────────────────────── */
+  var STORE_KEY = 'tdash_v3';
+
+  function loadTasks() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return getDefaults();
+  }
+
+  function saveTasks() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); } catch (e) {}
+  }
+
+  function getDefaults() {
+    return [{
+      id: 'task-1',
+      name: 'Final Year Report',
+      due: '2026-04-29',
+      subs: [
+        { id: 'sub-1-1', label: 'Email Dominic', done: false },
+        { id: 'sub-1-2', label: 'Intro write up', done: false },
+        { id: 'sub-1-3', label: 'Methods editing', done: false },
+        { id: 'sub-1-4', label: 'Descriptives and ANOVA', done: false },
+        { id: 'sub-1-5', label: 'Correlations', done: false },
+        { id: 'sub-1-6', label: 'Thematic analysis', done: false },
+        { id: 'sub-1-7', label: 'Qualitative and quantitative match-ups', done: false },
+        { id: 'sub-1-8', label: 'Analysis write up', done: false },
+        { id: 'sub-1-9', label: 'Discussion sections', done: false }
+      ]
+    }];
+  }
+
+  /* ── State ───────────────────────────────────────────────── */
+  var tasks    = loadTasks();
+  var expanded = {};
+
+  /* ── Helpers ─────────────────────────────────────────────── */
+  function daysLeft(due) {
+    if (!due) return 9999;
+    var d = new Date(due);
+    d.setHours(23, 59, 59, 999);
+    return Math.ceil((d.getTime() - Date.now()) / 86400000);
+  }
+
+  function getBadge(days, allDone) {
+    if (allDone)    return { cls: 'b-done',   txt: 'Done' };
+    if (days < 0)   return { cls: 'b-urgent', txt: 'Overdue' };
+    if (days === 0) return { cls: 'b-urgent', txt: 'Due today' };
+    if (days <= 7)  return { cls: 'b-urgent', txt: days + 'd left' };
+    if (days <= 21) return { cls: 'b-warn',   txt: days + 'd left' };
+    return               { cls: 'b-ok',     txt: days + 'd left' };
+  }
+
+  function fillColor(pct) {
+    if (pct >= 100) return '#1d9e75';
+    if (pct >= 50)  return '#5dcaa5';
+    return '#9fe1cb';
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function uid() {
+    return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+  }
+
+  /* ── Checkmark SVG ───────────────────────────────────────── */
+  var TICK = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">'
+           + '<polyline points="1.5,5 3.8,7.8 8.5,2.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'
+           + '</svg>';
+
+  /* ── Toggle subtask ──────────────────────────────────────── */
+  function toggleSub(taskId, subId) {
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].id !== taskId) continue;
+      for (var j = 0; j < tasks[i].subs.length; j++) {
+        if (tasks[i].subs[j].id === subId) {
+          tasks[i].subs[j].done = !tasks[i].subs[j].done;
+          break;
+        }
+      }
+      break;
+    }
+    saveTasks();
+    render();
+  }
+
+  /* ── Toggle expand ───────────────────────────────────────── */
+  function toggleExpand(taskId) {
+    expanded[taskId] = !expanded[taskId];
+    render();
+  }
+
+  /* ── Render ──────────────────────────────────────────────── */
+  function render() {
+    /* date */
+    document.getElementById('hdr-date').textContent =
+      new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    /* stats */
+    var total  = tasks.length;
+    var doneN  = 0;
+    var urgentN = 0;
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      var allDone = t.subs.length > 0 && t.subs.every(function(s){ return s.done; });
+      if (allDone) doneN++;
+      var days = daysLeft(t.due);
+      if (!allDone && days <= 7) urgentN++;
+    }
+    document.getElementById('st-total').textContent  = total;
+    document.getElementById('st-done').textContent   = doneN;
+    document.getElementById('st-urgent').textContent = urgentN;
+
+    /* cards */
+    var cardsEl = document.getElementById('cards');
+    cardsEl.innerHTML = '';
+
+    if (tasks.length === 0) {
+      cardsEl.innerHTML = '<div class="empty">No tasks yet — add one below.</div>';
+      return;
+    }
+
+    for (var i = 0; i < tasks.length; i++) {
+      cardsEl.appendChild(buildCard(tasks[i]));
+    }
+  }
+
+  function buildCard(t) {
+    var hasSubs  = t.subs.length > 0;
+    var doneCnt  = hasSubs ? t.subs.filter(function(s){ return s.done; }).length : 0;
+    var totalSub = t.subs.length;
+    var pct      = hasSubs ? Math.round(doneCnt / totalSub * 100) : 0;
+    var allDone  = hasSubs && doneCnt === totalSub;
+    var days     = daysLeft(t.due);
+    var bdg      = getBadge(days, allDone);
+    var isExp    = !!expanded[t.id];
+
+    /* card wrapper */
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    /* --- body --- */
+    var body = document.createElement('div');
+    body.className = 'card-body';
+
+    /* top row: name + badge */
+    var top = document.createElement('div');
+    top.className = 'card-top';
+
+    var name = document.createElement('div');
+    name.className = 'card-name' + (allDone ? ' done' : '');
+    name.textContent = t.name;
+
+    var badge = document.createElement('span');
+    badge.className = 'badge ' + bdg.cls;
+    badge.textContent = bdg.txt;
+
+    top.appendChild(name);
+    top.appendChild(badge);
+    body.appendChild(top);
+
+    /* progress bar */
+    if (hasSubs) {
+      var prow = document.createElement('div');
+      prow.className = 'prow';
+
+      var pbar = document.createElement('div');
+      pbar.className = 'pbar';
+
+      var pfill = document.createElement('div');
+      pfill.className = 'pfill';
+      pfill.style.width = pct + '%';
+      pfill.style.background = fillColor(pct);
+
+      var ptxt = document.createElement('div');
+      ptxt.className = 'ptxt';
+      ptxt.textContent = doneCnt + '/' + totalSub;
+
+      pbar.appendChild(pfill);
+      prow.appendChild(pbar);
+      prow.appendChild(ptxt);
+      body.appendChild(prow);
+    }
+
+    card.appendChild(body);
+
+    /* --- footer --- */
+    var foot = document.createElement('div');
+    foot.className = 'card-foot';
+
+    var due = document.createElement('div');
+    due.className = 'card-due';
+    due.textContent = 'Due ' + formatDate(t.due);
+    foot.appendChild(due);
+
+    if (hasSubs) {
+      var togBtn = document.createElement('button');
+      togBtn.className = 'tog-btn';
+      togBtn.textContent = isExp ? 'Hide tasks' : 'Show tasks';
+      /* use closure to capture task id */
+      togBtn.addEventListener('click', (function(tid){ return function(){ toggleExpand(tid); }; })(t.id));
+      foot.appendChild(togBtn);
+    }
+
+    card.appendChild(foot);
+
+    /* --- subtasks --- */
+    if (hasSubs && isExp) {
+      var subsList = document.createElement('div');
+      subsList.className = 'subs-list';
+
+      for (var j = 0; j < t.subs.length; j++) {
+        subsList.appendChild(buildSubRow(t.id, t.subs[j]));
+      }
+
+      card.appendChild(subsList);
+    }
+
+    return card;
+  }
+
+  function buildSubRow(taskId, sub) {
+    var row = document.createElement('div');
+    row.className = 'sub-row';
+    row.addEventListener('click', (function(tid, sid){ return function(){ toggleSub(tid, sid); }; })(taskId, sub.id));
+
+    var chk = document.createElement('div');
+    chk.className = 'chk' + (sub.done ? ' on' : '');
+    if (sub.done) chk.innerHTML = TICK;
+
+    var lbl = document.createElement('div');
+    lbl.className = 'sub-lbl' + (sub.done ? ' done' : '');
+    lbl.textContent = sub.label;
+
+    row.appendChild(chk);
+    row.appendChild(lbl);
+    return row;
+  }
+
+  /* ── Modal ───────────────────────────────────────────────── */
+  var overlay  = document.getElementById('overlay');
+  var modal    = document.getElementById('modal');
+  var inpName  = document.getElementById('inp-name');
+  var inpDue   = document.getElementById('inp-due');
+  var inpSubs  = document.getElementById('inp-subs');
+  var saveBtn  = document.getElementById('save-btn');
+
+  document.getElementById('open-modal-btn').addEventListener('click', function(){
+    overlay.classList.add('open');
+    inpName.focus();
+  });
+
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) closeModal();
+  });
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    inpName.value = '';
+    inpDue.value  = '';
+    inpSubs.value = '';
+  }
+
+  saveBtn.addEventListener('click', function(){
+    var name = inpName.value.trim();
+    var due  = inpDue.value;
+    if (!name) { inpName.focus(); return; }
+    if (!due)  { inpDue.focus();  return; }
+
+    var subLines = inpSubs.value.trim()
+      ? inpSubs.value.split('\n').map(function(l){ return l.trim(); }).filter(Boolean)
+      : [];
+
+    var newTask = {
+      id:   uid(),
+      name: name,
+      due:  due,
+      subs: subLines.map(function(l){ return { id: uid(), label: l, done: false }; })
+    };
+
+    tasks.push(newTask);
+    saveTasks();
+    closeModal();
+    render();
+  });
+
+  /* ── Boot ────────────────────────────────────────────────── */
+  render();
+
+})();
+</script>
+</body>
+</html>
